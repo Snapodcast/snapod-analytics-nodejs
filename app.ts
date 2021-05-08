@@ -15,13 +15,17 @@ const { getName } = require('country-list');
 const timestampToDate = require('timestamp-to-date');
 const request = require('request');
 
+function randomNum(minNum: number, maxNum: number): number {
+  return Math.round(Math.random() * (maxNum - minNum + 1) + minNum);
+}
+
 interface IntervalResult {
   name: number,
   plays: number,
   countries: {
     [name: string]: {
       plays: number,
-      city: {
+      cities: {
         [name: string]: number
       }
     },
@@ -46,15 +50,15 @@ const updateIntervalResult = (
     if (new_countries[record.country]) {
       new_countries[record.country].plays += 1;
       // current city exists
-      if (new_countries[record.country].city[record.city]) {
-        new_countries[record.country].city[record.city] += 1;
+      if (new_countries[record.country].cities[record.city]) {
+        new_countries[record.country].cities[record.city] += 1;
       } else {
-        new_countries[record.country].city[record.city] = 1;
+        new_countries[record.country].cities[record.city] = 1;
       }
     } else {
       new_countries[record.country] = {
         plays: 1,
-        city: {}
+        cities: {}
       }
     }
 
@@ -89,7 +93,7 @@ const updateIntervalResult = (
       countries: {
         [record.country]: {
           plays: 1,
-          city: {
+          cities: {
             [record.city]: 1
           }
         }
@@ -151,8 +155,6 @@ redisClient.once("connect", async () => {
         podcastCuid: req.params.podcastCuid
       });
 
-      console.log(record_ids)
-
       const record_ids_sorted = await StatsModel.sort({
         field: "createdAt",
         direction: "DESC"
@@ -164,10 +166,10 @@ redisClient.once("connect", async () => {
       let currentLow = highest - interval;
       let intervalResult: IntervalResult = null;
       let result_pos = 0;
-      records.forEach((record: any) => {
+      records.forEach((record: any, index: number) => {
         const currentRecord: RecordInterface = record.allPropertiesCache;
         // current record is within current interval
-        if (currentRecord.createdAt < currentLow) {
+        if (currentRecord.createdAt < currentLow && index !== 0) {
           currentLow -= interval;
           intervalResult = null;
           result_pos += 1;
@@ -187,7 +189,6 @@ redisClient.once("connect", async () => {
     async function (req, res, next) {
       const user_agent = req.useragent.source;
       const geo = geoip.lookup(req.headers["x-real-ip"]);
-      console.log(geo);
       try {
         let listening_platform = "unknown";
         userAgentList.map((item) => {
@@ -199,19 +200,25 @@ redisClient.once("connect", async () => {
           });
         });
 
+        const date = randomNum(new Date().getTime() - 5 * 31 * 86400000, new Date().getTime());
+        console.log(timestampToDate(date, 'yyyy/MM/dd'));
+
         const data = {
           episodeCuid: req.params.episodeCuid,
           podcastCuid: req.params.podcastCuid,
-          country: getName(geo.country),
-          city: geo.city,
+          country: geo ? getName(geo.country) : "unknown",
+          city: geo ? geo.city: "unknown",
           device: req.device.type,
           client: listening_platform,
+          createdAt: date
         };
 
         const stats = new StatsModel();
         await stats.store(data);
 
-        res.redirect(req.query.audio);
+        res.send(JSON.stringify({
+          msg: "cool"
+        }));
       } catch (err) {
         next(err);
       }
