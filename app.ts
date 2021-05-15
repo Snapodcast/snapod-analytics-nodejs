@@ -5,7 +5,6 @@ const redis = require("redis");
 const fs = require("fs");
 const bodyParser = require("body-parser");
 const http = require("http");
-const socketIo = require("socket.io");
 const cors = require("cors");
 const userAgentList = require("./userAgents");
 const useragentMiddleware = require("express-useragent");
@@ -13,7 +12,7 @@ const geoip = require('geoip-lite');
 const device = require('express-device');
 const { getName } = require('country-list');
 const timestampToDate = require('timestamp-to-date');
-const request = require('request');
+const capitalize = require('string-capitalize')
 
 function randomNum(minNum: number, maxNum: number): number {
   return Math.round(Math.random() * (maxNum - minNum + 1) + minNum);
@@ -34,7 +33,14 @@ interface IntervalResult {
   clients: { [name: string]: number }
 }
 
-interface RecordInterface { country: string; city: string; device: string; client: string; createdAt: number; }
+interface RecordInterface {
+  episodeCuid: string;
+  country: string;
+  city: string;
+  device: string;
+  client: string;
+  createdAt: number;
+}
 
 const updateIntervalResult = (
   record: RecordInterface,
@@ -162,12 +168,27 @@ redisClient.once("connect", async () => {
 
       const records = await StatsModel.loadMany(record_ids_sorted);
 
-      let result: IntervalResult[] = [];
+      let result: {
+        episodeData: {
+          [cuid: string]: number
+        },
+        intervalData: IntervalResult[]
+      } = {
+        episodeData: {},
+        intervalData: []
+      };
       let currentLow = highest - interval;
       let intervalResult: IntervalResult = null;
       let result_pos = 0;
       records.forEach((record: any, index: number) => {
         const currentRecord: RecordInterface = record.allPropertiesCache;
+        // count plays by episode
+        if (result.episodeData[currentRecord.episodeCuid]) {
+          result.episodeData[currentRecord.episodeCuid] += 1;
+        } else {
+          result.episodeData[currentRecord.episodeCuid] = 1;
+        }
+
         // current record is within current interval
         if (currentRecord.createdAt < currentLow && index !== 0) {
           currentLow -= interval;
@@ -175,7 +196,8 @@ redisClient.once("connect", async () => {
           result_pos += 1;
         }
         intervalResult = updateIntervalResult(currentRecord, intervalResult);
-        result[result_pos] = intervalResult;
+
+        result.intervalData[result_pos] = intervalResult;
       })
 
       res.json(result);
@@ -200,6 +222,41 @@ redisClient.once("connect", async () => {
           });
         });
 
+        const data = {
+          episodeCuid: req.params.episodeCuid,
+          podcastCuid: req.params.podcastCuid,
+          country: geo ? getName(geo.country) : "unknown",
+          city: geo ? geo.city : "unknown",
+          device: capitalize(req.device.type),
+          client: capitalize(listening_platform)
+        };
+
+        const stats = new StatsModel();
+        await stats.store(data);
+
+        res.redirect(req.params.audioUrl);
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  app.get(
+    "/test/podcast/:podcastCuid/episode/:episodeCuid",
+    async function (req, res, next) {
+      const user_agent = req.useragent.source;
+      const geo = geoip.lookup(req.headers["x-real-ip"]);
+      try {
+        let listening_platform = "unknown";
+        userAgentList.map((item) => {
+          item.user_agents.map((agent) => {
+            const pattern = new RegExp(unescape(agent));
+            if (pattern.test(user_agent)) {
+              listening_platform = item.app;
+            }
+          });
+        });
+
         const date = randomNum(new Date().getTime() - 5 * 31 * 86400000, new Date().getTime());
         console.log(timestampToDate(date, 'yyyy/MM/dd'));
 
@@ -207,9 +264,9 @@ redisClient.once("connect", async () => {
           episodeCuid: req.params.episodeCuid,
           podcastCuid: req.params.podcastCuid,
           country: geo ? getName(geo.country) : "unknown",
-          city: geo ? geo.city: "unknown",
-          device: req.device.type,
-          client: listening_platform,
+          city: geo ? geo.city : "unknown",
+          device: capitalize(req.device.type),
+          client: capitalize(listening_platform),
           createdAt: date
         };
 
@@ -226,7 +283,9 @@ redisClient.once("connect", async () => {
   );
 
   app.get("/", function (req, res) {
-    res.send(fs.readFileSync(__dirname + "/index.html", "utf-8"));
+    res.send(JSON.stringify({
+      ping: "pong"
+    }));
   });
 
   app.use(function (err, _req, res, next) {
@@ -247,7 +306,8 @@ redisClient.once("connect", async () => {
     res.send({ result: "error", data: errData });
   });
 
-  server.listen(4444, () => {
-    console.log("listening on 4444");
+  const port = process.env.PORT || 3000;
+  server.listen(port, () => {
+    console.log(`listening on ${port}`);
   });
 });

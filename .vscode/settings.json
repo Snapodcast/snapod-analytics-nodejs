@@ -1,0 +1,8 @@
+{
+  "appService.zipIgnorePattern": [
+    "node_modules{,/**}",
+    ".vscode{,/**}"
+  ],
+  "appService.deploySubpath": ".",
+  "appService.defaultWebAppToDeploy": "/subscriptions/d42cb5fe-d9b3-40d6-a984-3ea6f916ab18/resourceGroups/Snapod_group/providers/Microsoft.Web/sites/snapod-analytics"
+}

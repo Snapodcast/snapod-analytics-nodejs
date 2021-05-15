@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "dev": "export NODE_ENV=development; nodemon --config nodemon.json",
-    "start": "export NODE_ENV=production; nodemon --config nodemon.json"
+    "start": "export NODE_ENV=production; ts-node ./app.ts"
   },
   "devDependencies": {
     "nodemon": "^2.0.7",
@@ -19,10 +19,14 @@
   "dependencies": {
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
+    "country-list": "^2.2.0",
     "express": "^4.17.1",
+    "express-device": "^0.4.2",
     "express-useragent": "^1.0.15",
     "geoip-lite": "^1.4.2",
     "nohm": "^2.2.3",
-    "socket.io": "^4.0.2"
+    "socket.io": "^4.0.2",
+    "string-capitalize": "^1.0.1",
+    "timestamp-to-date": "^1.1.0"
   }
 }
