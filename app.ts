@@ -5,6 +5,7 @@ const redis = require("redis");
 const fs = require("fs");
 const bodyParser = require("body-parser");
 const http = require("http");
+const https = require("https");
 const cors = require("cors");
 const userAgentList = require("./userAgents");
 const useragentMiddleware = require("express-useragent");
@@ -234,7 +235,13 @@ redisClient.once("connect", async () => {
         const stats = new StatsModel();
         await stats.store(data);
 
-        res.redirect(req.params.audioUrl);
+        https.get(req.query.audio, function (resp) {
+          res.setHeader('content-Disposition', resp.headers['content-disposition']);
+          res.setHeader('Content-Type', resp.headers['content-type']);
+          res.setHeader('Content-Length', resp.headers['content-length']);
+          resp.pipe(res);
+        });
+
       } catch (err) {
         next(err);
       }
