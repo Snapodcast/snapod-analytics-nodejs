@@ -8,12 +8,13 @@ const http = require("http");
 const https = require("https");
 const cors = require("cors");
 const userAgentList = require("./userAgents");
-const useragentMiddleware = require("express-useragent");
 const geoip = require('geoip-lite');
 const device = require('express-device');
 const { getName } = require('country-list');
 const timestampToDate = require('timestamp-to-date');
 const capitalize = require('string-capitalize')
+const requestIp = require('request-ip');
+const parseRange = require('range-parser')
 
 function randomNum(minNum: number, maxNum: number): number {
   return Math.round(Math.random() * (maxNum - minNum + 1) + minNum);
@@ -133,7 +134,7 @@ redisClient.once("connect", async () => {
 
   app.use(cors());
 
-  app.use(useragentMiddleware.express());
+  app.use(requestIp.mw())
 
   app.use(device.capture());
 
@@ -211,16 +212,19 @@ redisClient.once("connect", async () => {
     "/podcast/:podcastCuid/episode/:episodeCuid",
     async function (req, res, next) {
       try {
-        // exclude range request
-        if (!req.headers['range']) {
-          const user_agent = req.useragent.source;
-          const geo = geoip.lookup(req.headers["x-real-ip"]);
+        if (!req.headers['range'] || req.headers['range'] === 'bytes=0-1') {
+          // exclude range request
+          const user_agent = req.headers['user-agent'];
+          const geo = geoip.lookup(req.clientIp);
           let listening_platform = "unknown";
+
           userAgentList.map((item) => {
             item.user_agents.map((agent) => {
               const pattern = new RegExp(unescape(agent));
               if (pattern.test(user_agent)) {
-                listening_platform = item.app;
+                if (item.app) {
+                  listening_platform = item.app;
+                }
               }
             });
           });
@@ -235,7 +239,11 @@ redisClient.once("connect", async () => {
           };
 
           const stats = new StatsModel();
-          await stats.store(data);
+          try {
+            await stats.store(data);
+          } catch (err) {
+            console.log(err);
+          }
         }
 
         const options = req.headers['range'] ? {
@@ -248,7 +256,7 @@ redisClient.once("connect", async () => {
           res.setHeader('Content-Type', resp.headers['content-type']);
           res.setHeader('Content-Length', resp.headers['content-length']);
           if (req.headers['range']) {
-            res.setHeader('Content-Range', resp.headers['content-range'])
+            res.setHeader('Content-Range', resp.headers['content-range']);
             res.status(206);
           }
           resp.pipe(res);
@@ -263,8 +271,8 @@ redisClient.once("connect", async () => {
   app.get(
     "/test/podcast/:podcastCuid/episode/:episodeCuid",
     async function (req, res, next) {
-      const user_agent = req.useragent.source;
-      const geo = geoip.lookup(req.headers["x-real-ip"]);
+      const user_agent = req.headers['user-agent'];
+      const geo = geoip.lookup(req.clientIp);
       try {
         let listening_platform = "unknown";
         userAgentList.map((item) => {
