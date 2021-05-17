@@ -210,35 +210,47 @@ redisClient.once("connect", async () => {
   app.get(
     "/podcast/:podcastCuid/episode/:episodeCuid",
     async function (req, res, next) {
-      const user_agent = req.useragent.source;
-      const geo = geoip.lookup(req.headers["x-real-ip"]);
       try {
-        let listening_platform = "unknown";
-        userAgentList.map((item) => {
-          item.user_agents.map((agent) => {
-            const pattern = new RegExp(unescape(agent));
-            if (pattern.test(user_agent)) {
-              listening_platform = item.app;
-            }
+        // exclude range request
+        if (!req.headers['range']) {
+          const user_agent = req.useragent.source;
+          const geo = geoip.lookup(req.headers["x-real-ip"]);
+          let listening_platform = "unknown";
+          userAgentList.map((item) => {
+            item.user_agents.map((agent) => {
+              const pattern = new RegExp(unescape(agent));
+              if (pattern.test(user_agent)) {
+                listening_platform = item.app;
+              }
+            });
           });
-        });
 
-        const data = {
-          episodeCuid: req.params.episodeCuid,
-          podcastCuid: req.params.podcastCuid,
-          country: geo ? getName(geo.country) : "unknown",
-          city: geo ? geo.city : "unknown",
-          device: capitalize(req.device.type),
-          client: capitalize(listening_platform)
-        };
+          const data = {
+            episodeCuid: req.params.episodeCuid,
+            podcastCuid: req.params.podcastCuid,
+            country: geo ? getName(geo.country) : "unknown",
+            city: geo ? geo.city : "unknown",
+            device: capitalize(req.device.type),
+            client: capitalize(listening_platform)
+          };
 
-        const stats = new StatsModel();
-        await stats.store(data);
+          const stats = new StatsModel();
+          await stats.store(data);
+        }
 
-        https.get(req.query.audio, function (resp) {
-          res.setHeader('content-Disposition', resp.headers['content-disposition']);
+        const options = req.headers['range'] ? {
+          headers: {
+            'Range': req.headers['range']
+          }
+        } : {};
+        https.get(req.query.audio, options, function (resp) {
+          res.setHeader('Content-Disposition', resp.headers['content-disposition']);
           res.setHeader('Content-Type', resp.headers['content-type']);
           res.setHeader('Content-Length', resp.headers['content-length']);
+          if (req.headers['range']) {
+            res.setHeader('Content-Range', resp.headers['content-range'])
+            res.status(206);
+          }
           resp.pipe(res);
         });
 
