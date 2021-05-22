@@ -192,10 +192,14 @@ redisClient.once("connect", async () => {
         }
 
         // current record is within current interval
-        if (currentRecord.createdAt < currentLow && index !== 0) {
-          currentLow -= interval;
+        if (currentRecord.createdAt < currentLow) {
+          while (currentRecord.createdAt < currentLow && currentLow > lowest) {
+            currentLow -= interval;
+          }
           intervalResult = null;
-          result_pos += 1;
+          if (index !== 0) {
+            result_pos += 1;
+          }
         }
         intervalResult = updateIntervalResult(currentRecord, intervalResult);
 
