@@ -102,3 +102,6 @@ dist
 
 # TernJS port file
 .tern-port
+
+releases
+snapod-analytics-nodejs.zip

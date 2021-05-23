@@ -1,6 +1,6 @@
 const express = require("express");
 const Nohm = require("nohm").Nohm;
-const StatsModel = require("./model.ts");
+const StatsModel = require("./model");
 const redis = require("redis");
 const fs = require("fs");
 const bodyParser = require("body-parser");
@@ -196,9 +196,6 @@ redisClient.once("connect", async () => {
           while (currentRecord.createdAt < currentLow && currentLow > lowest) {
             currentLow -= interval;
           }
-          console.log('currentRecord', timestampToDate(currentRecord.createdAt.toString(), 'yyyy/MM/dd'));
-          console.log('currentLow', timestampToDate(currentLow.toString(), 'yyyy/MM/dd'));
-          console.log("\n");
           intervalResult = null;
           if (index !== 0) {
             result_pos += 1;
