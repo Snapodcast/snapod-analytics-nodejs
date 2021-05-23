@@ -196,6 +196,9 @@ redisClient.once("connect", async () => {
           while (currentRecord.createdAt < currentLow && currentLow > lowest) {
             currentLow -= interval;
           }
+          console.log('currentRecord', timestampToDate(currentRecord.createdAt.toString(), 'yyyy/MM/dd'));
+          console.log('currentLow', timestampToDate(currentLow.toString(), 'yyyy/MM/dd'));
+          console.log("\n");
           intervalResult = null;
           if (index !== 0) {
             result_pos += 1;
