@@ -184,7 +184,7 @@ redisClient.once("connect", async () => {
       let result_pos = 0;
       records.forEach((record: any, index: number) => {
         const currentRecord: RecordInterface = record.allPropertiesCache;
-        if (currentRecord.episodeCuid) {
+        if (!!currentRecord.episodeCuid && currentRecord.episodeCuid !== 'undefined') {
           // count plays by episode
           if (result.episodeData[currentRecord.episodeCuid]) {
             result.episodeData[currentRecord.episodeCuid] += 1;
