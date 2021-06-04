@@ -184,26 +184,28 @@ redisClient.once("connect", async () => {
       let result_pos = 0;
       records.forEach((record: any, index: number) => {
         const currentRecord: RecordInterface = record.allPropertiesCache;
-        // count plays by episode
-        if (result.episodeData[currentRecord.episodeCuid]) {
-          result.episodeData[currentRecord.episodeCuid] += 1;
-        } else {
-          result.episodeData[currentRecord.episodeCuid] = 1;
-        }
-
-        // current record is within current interval
-        if (currentRecord.createdAt < currentLow) {
-          while (currentRecord.createdAt < currentLow && currentLow > lowest) {
-            currentLow -= interval;
+        if (currentRecord.episodeCuid) {
+          // count plays by episode
+          if (result.episodeData[currentRecord.episodeCuid]) {
+            result.episodeData[currentRecord.episodeCuid] += 1;
+          } else {
+            result.episodeData[currentRecord.episodeCuid] = 1;
           }
-          intervalResult = null;
-          if (index !== 0) {
-            result_pos += 1;
-          }
-        }
-        intervalResult = updateIntervalResult(currentRecord, intervalResult);
 
-        result.intervalData[result_pos] = intervalResult;
+          // current record is within current interval
+          if (currentRecord.createdAt < currentLow) {
+            while (currentRecord.createdAt < currentLow && currentLow > lowest) {
+              currentLow -= interval;
+            }
+            intervalResult = null;
+            if (index !== 0) {
+              result_pos += 1;
+            }
+          }
+          intervalResult = updateIntervalResult(currentRecord, intervalResult);
+
+          result.intervalData[result_pos] = intervalResult;
+        }
       })
 
       res.json(result);
