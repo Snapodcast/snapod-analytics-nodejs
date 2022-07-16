@@ -22,7 +22,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 // FIXME: redis.createClient: Error: certificate has expired
-// process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 function randomNum(minNum: number, maxNum: number): number {
 	return Math.round(Math.random() * (maxNum - minNum + 1) + minNum);
