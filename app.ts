@@ -296,16 +296,22 @@ redisClient.once("connect", async () => {
 					  }
 					: {};
 				https.get(req.query.audio, options, function (resp) {
-					res.setHeader(
-						"Content-Disposition",
-						resp.headers["content-disposition"]
-					);
 					res.setHeader("Content-Type", resp.headers["content-type"]);
-					res.setHeader("Content-Length", resp.headers["content-length"]);
+
+					if (resp.headers["content-disposition"]) {
+						res.setHeader(
+							"Content-Disposition",
+							resp.headers["content-disposition"]
+						);
+					}
+					if (resp.headers["content-length"]) {
+						res.setHeader("Content-Length", resp.headers["content-length"]);
+					}
 					if (req.headers["range"]) {
 						res.setHeader("Content-Range", resp.headers["content-range"]);
 						res.status(206);
 					}
+
 					resp.pipe(res);
 				});
 			} catch (err) {
@@ -314,7 +320,7 @@ redisClient.once("connect", async () => {
 		}
 	);
 
-	// Test endpoint (add a record without returning audio)
+	// Test endpoint (add a data point at a random time and do not returning audio)
 	app.get(
 		"/test/podcast/:podcastCuid/episode/:episodeCuid",
 		async function (req, res, next) {
