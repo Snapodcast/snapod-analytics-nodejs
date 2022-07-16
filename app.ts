@@ -238,6 +238,9 @@ redisClient.once("connect", async () => {
 					}
 				});
 
+				// Make sure intervalData is unique
+				result.intervalData = _.sortedUniqBy(result.intervalData, "name");
+
 				res.json(result);
 			} catch (err) {
 				next(err);
@@ -347,11 +350,9 @@ redisClient.once("connect", async () => {
 				const stats = new StatsModel();
 				await stats.store(data);
 
-				res.send(
-					JSON.stringify({
-						msg: "cool",
-					})
-				);
+				res.json({
+					msg: "cool",
+				});
 			} catch (err) {
 				next(err);
 			}
@@ -360,11 +361,9 @@ redisClient.once("connect", async () => {
 
 	// Health check endpoint
 	app.get("/", function (_req, res) {
-		res.send(
-			JSON.stringify({
-				ping: "pong",
-			})
-		);
+		res.json({
+			ping: "pong",
+		});
 	});
 
 	// Error handling
@@ -386,7 +385,8 @@ redisClient.once("connect", async () => {
 		if (res.statusCode >= 500) {
 			console.error("Server error:", err);
 		}
-		res.send({ result: "error", data: errData });
+
+		res.json({ result: "error", data: errData });
 	});
 
 	const port = process.env.PORT || 4444;
