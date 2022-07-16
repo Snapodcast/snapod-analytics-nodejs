@@ -321,10 +321,10 @@ redisClient.once("connect", async () => {
 			const user_agent = req.headers["user-agent"];
 			const geo = geoip.lookup(req.clientIp);
 			try {
-				let listening_platform = "unknown";
+				let listening_platform = "Other";
 				userAgentList.map((item) => {
 					item.user_agents.map((agent) => {
-						const pattern = new RegExp(unescape(agent));
+						const pattern = new RegExp(_.unescape(agent));
 						if (pattern.test(user_agent)) {
 							listening_platform = item.app;
 						}
@@ -340,8 +340,8 @@ redisClient.once("connect", async () => {
 				const data = {
 					episodeCuid: req.params.episodeCuid,
 					podcastCuid: req.params.podcastCuid,
-					country: geo ? getName(geo.country) : "unknown",
-					city: geo ? geo.city : "unknown",
+					country: geo ? getName(geo.country) : "Other",
+					city: geo ? geo.city : "Other",
 					device: capitalize(req.device.type),
 					client: capitalize(listening_platform),
 					createdAt: date,
