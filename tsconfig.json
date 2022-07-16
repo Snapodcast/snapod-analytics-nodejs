@@ -1,5 +1,26 @@
 {
 	"compilerOptions": {
-		"noImplicitAny": false
-	}
+		"allowJs": true,
+		"moduleResolution": "Node",
+		"module": "commonjs",
+		"outDir": "./dist",
+		"target": "ES5",
+		"lib": ["ESNext", "esnext.asynciterable"],
+		"removeComments": true,
+		"noImplicitAny": false,
+		"esModuleInterop": true,
+		"preserveConstEnums": true,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"typeRoots": ["node_modules/@types"],
+		"baseUrl": ".",
+		"plugins": [
+			{
+				"transform": "typescript-transform-paths"
+			}
+		]
+	},
+	"compileOnSave": false,
+	"includes": ["**/*.ts"],
+	"exclude": ["node_modules", "dist"]
 }
