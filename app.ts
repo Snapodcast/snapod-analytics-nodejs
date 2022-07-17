@@ -24,9 +24,11 @@ dotenv.config();
 // FIXME: redis.createClient: Error: certificate has expired
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-function randomNum(minNum: number, maxNum: number): number {
-	return Math.round(Math.random() * (maxNum - minNum + 1) + minNum);
-}
+const randomIp = () =>
+	Array(4)
+		.fill(0)
+		.map((_, i) => Math.floor(Math.random() * 255) + (i === 0 ? 1 : 0))
+		.join(".");
 
 interface IntervalResult {
 	name: number;
@@ -264,7 +266,7 @@ redisClient.once("connect", async () => {
 							const pattern = new RegExp(_.unescape(agent));
 							if (pattern.test(user_agent)) {
 								if (item.app) {
-									listening_platform = item.app;
+									listening_platform = item.app || item.name || "Other";
 								}
 							}
 						});
@@ -273,8 +275,8 @@ redisClient.once("connect", async () => {
 					const data = {
 						episodeCuid: req.params.episodeCuid,
 						podcastCuid: req.params.podcastCuid,
-						country: geo ? geo.country : "Other",
-						city: geo ? geo.city : "Other",
+						country: geo ? geo.country || "Other" : "Other",
+						city: geo ? geo.city || "Unknown" : "Other",
 						device: capitalize(req.device.type),
 						client: capitalize(listening_platform),
 					};
@@ -320,41 +322,39 @@ redisClient.once("connect", async () => {
 		}
 	);
 
-	// Test endpoint (add a data point at a random time and do not returning audio)
+	// Generate a test record with random data
 	app.get(
 		"/test/podcast/:podcastCuid/episode/:episodeCuid",
 		async function (req, res, next) {
-			const user_agent = req.headers["user-agent"];
-			const geo = geoip.lookup(req.clientIp);
 			try {
-				let listening_platform = "Other";
-				userAgentList.map((item) => {
-					item.user_agents.map((agent) => {
-						const pattern = new RegExp(_.unescape(agent));
-						if (pattern.test(user_agent)) {
-							listening_platform = item.app;
-						}
-					});
-				});
-
-				const date = randomNum(
+				const geo = geoip.lookup(randomIp());
+				const device = ["desktop", "tv", "tablet", "phone", "bot", "car"][
+					_.random(0, 5)
+				];
+				const agent = userAgentList[_.random(0, userAgentList.length - 1)];
+				const listening_platform = agent.app || agent.name || "Other";
+				const date = _.random(
 					new Date().getTime() - 5 * 31 * 86400000,
 					new Date().getTime()
 				);
-				console.log(timestampToDate(date, "yyyy/MM/dd"));
 
 				const data = {
 					episodeCuid: req.params.episodeCuid,
 					podcastCuid: req.params.podcastCuid,
-					country: geo ? getName(geo.country) : "Other",
-					city: geo ? geo.city : "Other",
-					device: capitalize(req.device.type),
+					country: geo ? getName(geo.country) || "Other" : "Other",
+					city: geo ? geo.city || "Unknown" : "Other",
+					device: capitalize(device),
 					client: capitalize(listening_platform),
 					createdAt: date,
 				};
 
 				const stats = new StatsModel();
 				await stats.store(data);
+
+				console.log(
+					"Test data generated:",
+					timestampToDate(date, "yyyy/MM/dd")
+				);
 
 				res.json({
 					msg: "cool",
