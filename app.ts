@@ -341,7 +341,7 @@ redisClient.once("connect", async () => {
 				const data = {
 					episodeCuid: req.params.episodeCuid,
 					podcastCuid: req.params.podcastCuid,
-					country: geo ? getName(geo.country) || "Other" : "Other",
+					country: geo ? geo.country || "Other" : "Other",
 					city: geo ? geo.city || "Unknown" : "Other",
 					device: capitalize(device),
 					client: capitalize(listening_platform),
