@@ -309,7 +309,7 @@ redisClient.once("connect", async () => {
 					if (resp.headers["content-length"]) {
 						res.setHeader("Content-Length", resp.headers["content-length"]);
 					}
-					if (req.headers["range"]) {
+					if (req.headers["content-range"]) {
 						res.setHeader("Content-Range", resp.headers["content-range"]);
 						res.status(206);
 					}
