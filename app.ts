@@ -137,6 +137,10 @@ const redisOptions = {
 
 const redisClient = redis.createClient(redisOptions);
 
+redisClient.on("error", function (err: any) {
+	console.error("Redis error:", err);
+});
+
 redisClient.once("connect", async () => {
 	Nohm.setPrefix("snapod-analytics");
 	Nohm.setClient(redisClient);
