@@ -21,9 +21,6 @@ const dotenv = require("dotenv");
 // Load environment variables from .env
 dotenv.config();
 
-// FIXME: redis.createClient: Error: certificate has expired
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 const randomIp = () =>
 	Array(4)
 		.fill(0)
@@ -301,25 +298,38 @@ redisClient.once("connect", async () => {
 							},
 					  }
 					: {};
-				https.get(req.query.audio, options, function (resp) {
-					res.setHeader("Content-Type", resp.headers["content-type"]);
 
-					if (resp.headers["content-disposition"]) {
-						res.setHeader(
-							"Content-Disposition",
-							resp.headers["content-disposition"]
-						);
-					}
-					if (resp.headers["content-length"]) {
-						res.setHeader("Content-Length", resp.headers["content-length"]);
-					}
-					if (req.headers["content-range"]) {
-						res.setHeader("Content-Range", resp.headers["content-range"]);
-						res.status(206);
-					}
+				let httpModule = http;
+				if (req.query.audio.startsWith("https://")) {
+					httpModule = https;
+				}
 
-					resp.pipe(res);
-				});
+				httpModule
+					.get(req.query.audio, options, function (resp) {
+						res.setHeader("Content-Type", resp.headers["content-type"]);
+
+						if (resp.headers["content-disposition"]) {
+							res.setHeader(
+								"Content-Disposition",
+								resp.headers["content-disposition"]
+							);
+						}
+						if (resp.headers["content-length"]) {
+							res.setHeader("Content-Length", resp.headers["content-length"]);
+						}
+						if (req.headers["content-range"]) {
+							res.setHeader("Content-Range", resp.headers["content-range"]);
+							res.status(206);
+						}
+
+						resp.pipe(res);
+					})
+					.on("error", function () {
+						res.json({
+							result: "error",
+							data: "Could not fetch audio",
+						});
+					});
 			} catch (err) {
 				next(err);
 			}
